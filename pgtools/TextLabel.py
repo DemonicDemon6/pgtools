@@ -5,7 +5,7 @@ from pgtools.ErrorMessage import ErrorMessage
 from typing import Tuple
 import pygame
 
-class TextLabel(Element, Styles):
+class TextLabel(Styles, Element):
     # Inherited from Elements:
     # Get methods: getElementInfo(), getWidth(), getHeight(), getSize(), getCoordX(), getCoordY(), getPos(), getBackgroundColor()
     # Set methods: setElementInfo(), setWidth(), setHeight(), setSize(), setCoordX(), setCoordY(), setPos(), setBackgroundColor()
@@ -19,7 +19,7 @@ class TextLabel(Element, Styles):
     #              setBorderTop(), setBorderBottom(), setBorderLeft(), setBorderRight(), setBorderAll(), setBorderColor()
     #              setStyleInfo()
     #
-    # Display methods: createBorder()
+    # Display methods: calcBorder(), calcPadding()
 
     # Initiate instance
     def __init__(self, text:str, font:pygame.font.Font, colorRGB:Tuple[int,int,int] = Color.named.DEFAULT, width:int = 0, height:int = 0, pos:Tuple[int,int]=(0,0), bgColorRGBA:Tuple[int,int,int] = Color.named.TRANSPARENT):
@@ -93,33 +93,21 @@ class TextLabel(Element, Styles):
         if self.getWidth() == 0:
             self.setWidth(textWidth)
         if self.getHeight() == 0:
-            self.setHeight(textWidth)
+            self.setHeight(textHeight)
 
-        # Get border
-        borderSurface, borderSize, borderLT = self.createBorder(self.getWidth(), self.getHeight())
+        # Get border | borderSurface:pygame.Surface, borderSize:tuple (width, height), borderLT:tuple (left, top)
+        borderSurface, borderSize, borderLT = self.calcBorder(self.getWidth(), self.getHeight())
 
-        # Calculate content area size
-        contentWidth = self.getWidth() - (self.padding[2] + self.padding[3])
-        contentHeight = self.getHeight() - (self.padding[0] + self.padding[1])
-
-        # Calculate the adjusted width and height based on padding
-        width = max(contentWidth, textWidth) 
-        height = max(contentHeight, textHeight)
-
-        textSurface = pygame.Surface((int(width), int(height)), pygame.SRCALPHA)
-        textSurface.fill(self.backgroundColorRGBA)
-
-        # Align text within the content area
-        textX = (contentWidth - textWidth) // 2 + self.padding[2]
-        textY = (contentHeight - textHeight) // 2 + self.padding[0]
-
-        # Display the text on the content area
-        textSurface.blit(renderText, (textX, textY))
+        # Get content surface with acount of padding | contentSurface:pygame.Surface
+        contentSurface = pygame.Surface((self.getWidth(), self.getHeight()), pygame.SRCALPHA)
+        contentSurface.fill(self.backgroundColorRGBA)
+        contentSurface = self.calcPadding(self.getWidth(), self.getHeight(), renderText, textWidth, textHeight, contentSurface)
 
         # Combine the content and border surfaces
         combinedSurface = pygame.Surface((borderSize[0], borderSize[1]), pygame.SRCALPHA)
         combinedSurface.blit(borderSurface, (0, 0))
-        combinedSurface.blit(textSurface, (borderLT[0], borderLT[1]))
+        combinedSurface.blit(contentSurface, (borderLT[0], borderLT[1]))
 
         # Store in self.surface
         self.surface = combinedSurface
+        self.rect = pygame.Rect(self.pos[0], self.pos[1], combinedSurface.get_size()[0], combinedSurface.get_size()[1])

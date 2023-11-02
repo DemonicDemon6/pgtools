@@ -1,5 +1,6 @@
 from pgtools.ErrorMessage import ErrorMessage
 from pgtools.Color import Color
+from pgtools.Element import Element
 from typing import Union, Tuple
 import pygame
 
@@ -124,8 +125,9 @@ class Styles():
         self.setBorderLeft(left)
         self.setBorderRight(right)
 
-    def setBorder(self, border:int):
+    def setBorder(self, border:int, colorRGBA:Tuple[int,int,int,int]):
         self.setBorderAll(border, border, border, border)
+        self.setBorderColor(colorRGBA)
 
     def setBorderColor(self, colorRGBA:Tuple[int,int,int,int]):
         if not isinstance(colorRGBA, (tuple,list)):
@@ -137,17 +139,40 @@ class Styles():
         self.borderColorRGBA = Color.rgba(*colorRGBA)
 
     # Display methods
-    def createBorder(self, width, height) -> Union[pygame.Surface, Union[Tuple[int, int], Tuple[int, int]]]:
+    def calcBorder(self, width:int, height:int) -> Union[pygame.Surface, Union[Tuple[int, int], Tuple[int, int]]]:
         # Create border surface
-        borderTop, borderBottom, borderLeft, borderRight = self.border
-        borderWidth = width + borderLeft + borderRight
-        borderHeight = height + borderTop + borderBottom
+        top, bottom, left, right = self.border
+        trueWidth = width + left + right
+        trueHeight = height + top + bottom
 
         # Create border
-        borderSurface = pygame.Surface((borderWidth, borderHeight), pygame.SRCALPHA)
-        borderColor = pygame.Color(*self.borderColorRGBA)
-        borderRect = pygame.Rect(0, 0, borderWidth, borderHeight)
-        pygame.draw.rect(borderSurface, borderColor, borderRect)
+        surface = pygame.Surface((trueWidth, trueHeight), pygame.SRCALPHA)
+        colorRGBA = self.borderColorRGBA
+        
+        # Draw rects
+        topRect = pygame.Rect(0, 0, trueWidth, top)
+        bottomRect = pygame.Rect(0, trueHeight - bottom, trueWidth, bottom)
+        leftRect = pygame.Rect(0, top, left, trueHeight)
+        rightRect = pygame.Rect(trueWidth - right, top, right, trueHeight)
+
+        pygame.draw.rect(surface, colorRGBA, topRect)
+        pygame.draw.rect(surface, colorRGBA, bottomRect)
+        pygame.draw.rect(surface, colorRGBA, leftRect)
+        pygame.draw.rect(surface, colorRGBA, rightRect)
 
         # Return
-        return borderSurface, (borderWidth, borderHeight), (borderLeft, borderTop)
+        return surface, (trueWidth, trueHeight), (left, top)
+    
+    def calcPadding(self, width:int, height:int, render:pygame.surface.Surface, renderWidth:int, renderHeight:int, contentSurface:pygame.Surface) -> pygame.Surface:
+        # Calculate content area size
+        contentWidth = width - (self.padding[2] + self.padding[3])
+        contentHeight = height - (self.padding[0] + self.padding[1])
+
+        # Align text within the content area
+        contentX = (contentWidth - renderWidth) // 2 + self.padding[2]
+        contentY = (contentHeight - renderHeight) // 2 + self.padding[0]
+
+        # Display the text on the content area
+        contentSurface.blit(render, (contentX, contentY))
+
+        return contentSurface

@@ -30,7 +30,7 @@ class Button(Element):
         return self.isHovered() and (pygame.mouse.get_pressed()[0] == 1 or pygame.mouse.get_pressed()[2] == 1)
 
     def isLeftClicked(self) -> bool:
-        return self.isHeld() and pygame.mouse.get_pressed()[0] == 1
+        return self.isClicked() and pygame.mouse.get_pressed()[0] == 1
 
     def isRightClicked(self) -> bool:
-        return self.isHeld() and pygame.mouse.get_pressed()[2] == 1
+        return self.isClicked() and pygame.mouse.get_pressed()[2] == 1
